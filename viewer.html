@@ -13,10 +13,10 @@
   <script>
     const adobeClientId = '3e1a75021ea449c0a902c8942554d478';
     const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbyxnw4x8zU3-E_CGr0hQc0OYyTIpZ-MeE4TinSbNQ7zsIXalg91jodjI_jCArG7XkQdXw/exec';
-
+    
     const urlParams = new URLSearchParams(window.location.search);
     const pdfUrl = urlParams.get('pdf');
-
+    
     if (!pdfUrl) {
       document.body.innerHTML = "Missing PDF URL!";
     } else {
@@ -26,19 +26,20 @@
           content: { location: { url: pdfUrl }},
           metaData: { fileName: pdfUrl.split('/').pop() }
         }, { embedMode: "FULL_WINDOW" });
-
+    
         let lastPage = null, lastTimestamp = Date.now();
-
+    
         function sendAnalytics(pageNumber, timeSpentSeconds) {
           fetch(googleScriptUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pdfUrl, pageNumber, timeSpentSeconds })
-          }).then(res => res.json())
-            .then(result => console.log('Logged:', result))
-            .catch(console.error);
+          })
+          .then(res => res.json())
+          .then(result => console.log('Logged to sheets:', result))
+          .catch(err => console.error('Logging failed:', err));
         }
-
+    
         viewer.registerCallback(
           AdobeDC.View.Enum.CallbackType.EVENT_LISTENER,
           (event) => {
@@ -46,7 +47,8 @@
               const now = Date.now();
               if (lastPage !== null) {
                 const timeSpentSeconds = ((now - lastTimestamp) / 1000).toFixed(2);
-                sendAnalytics(lastPage, timeSpentSeconds);
+                console.log(`Sending analytics: Page ${lastPage}, ${timeSpentSeconds}s`);
+                sendAnalytics(lastPage, timeSpentSeconds); // Confirm this line is exactly here
               }
               lastPage = event.data.pageNumber;
               lastTimestamp = now;
@@ -56,6 +58,7 @@
         );
       });
     }
-  </script>
+    </script>
+    
 </body>
 </html>

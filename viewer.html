@@ -30,16 +30,16 @@
         let lastPage = null, lastTimestamp = Date.now();
     
         function sendAnalytics(pageNumber, timeSpentSeconds) {
-          fetch(googleScriptUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pdfUrl, pageNumber, timeSpentSeconds })
-          })
-          .then(res => res.json())
-          .then(result => console.log('Logged to sheets:', result))
-          .catch(err => console.error('Logging failed:', err));
+            fetch(googleScriptUrl, {
+                method: 'POST',
+                mode: 'no-cors', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pdfUrl, pageNumber, timeSpentSeconds })
+            })
+            .then(result => console.log('Sent analytics request (no-cors mode):', result))
+            .catch(err => console.error('Logging failed:', err));
         }
-    
+
         viewer.registerCallback(
           AdobeDC.View.Enum.CallbackType.EVENT_LISTENER,
           (event) => {

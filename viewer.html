@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>PDF Viewer with Analytics</title>
+  <script src="https://documentcloud.adobe.com/view-sdk/viewer.js"></script>
+  <style>
+    html, body, #pdf-viewer { height:100%; margin:0; padding:0; }
+  </style>
+</head>
+<body>
+  <div id="pdf-viewer"></div>
+
+  <script>
+    const adobeClientId = '3e1a75021ea449c0a902c8942554d478';
+    const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbyxnw4x8zU3-E_CGr0hQc0OYyTIpZ-MeE4TinSbNQ7zsIXalg91jodjI_jCArG7XkQdXw/exec';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const pdfUrl = urlParams.get('pdf');
+
+    if (!pdfUrl) {
+      document.body.innerHTML = "Missing PDF URL!";
+    } else {
+      document.addEventListener("adobe_dc_view_sdk.ready", () => { 
+        const viewer = new AdobeDC.View({ clientId: adobeClientId, divId: "pdf-viewer" });
+        viewer.previewFile({
+          content: { location: { url: pdfUrl }},
+          metaData: { fileName: pdfUrl.split('/').pop() }
+        }, { embedMode: "FULL_WINDOW" });
+
+        let lastPage = null, lastTimestamp = Date.now();
+
+        function sendAnalytics(pageNumber, timeSpentSeconds) {
+          fetch(googleScriptUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pdfUrl, pageNumber, timeSpentSeconds })
+          }).then(res => res.json())
+            .then(result => console.log('Logged:', result))
+            .catch(console.error);
+        }
+
+        viewer.registerCallback(
+          AdobeDC.View.Enum.CallbackType.EVENT_LISTENER,
+          (event) => {
+            if (event.type === "PAGE_VIEW") {
+              const now = Date.now();
+              if (lastPage !== null) {
+                const timeSpentSeconds = ((now - lastTimestamp) / 1000).toFixed(2);
+                sendAnalytics(lastPage, timeSpentSeconds);
+              }
+              lastPage = event.data.pageNumber;
+              lastTimestamp = now;
+            }
+          },
+          { enablePDFAnalytics: true }
+        );
+      });
+    }
+  </script>
+</body>
+</html>
